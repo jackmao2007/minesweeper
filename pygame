@@ -1,0 +1,80 @@
+"""pygame minesweeper"""
+import pygame
+import generate_map
+
+pygame.init()
+
+grid = generate_map.finished_map()
+pix = len(grid) * 30 + len(grid) - 1
+screen = pygame.display.set_mode((pix, pix))
+flag_map = []
+for i in grid:
+    flag_r = []
+    for j in grid:
+        flag_r.append(0)
+    flag_map.append(flag_r)
+done = False
+dead = False
+
+r = 0
+for rows in grid:
+    c = 0
+    for columns in rows:
+        pygame.draw.rect(screen, (255, 255, 255), pygame.Rect(r, c, 30, 30))
+        c += 31
+    r += 31
+
+
+def safe_check_around(screen, grid, pos, checked=None):
+    """checks if the surrounding clues are 0 or number and light it up. #NOTE: pos is a tuple of coordinates
+    eg. (0,0) """
+    if checked is None:
+        checked = [pos]
+    x, y = pos
+    check = []
+    for i in range(max(0, x - 1), min(len(grid), x + 2)):
+        for j in range(max(0, y - 1), min(len(grid), y + 2)):
+            if (i, j) not in checked:
+                check.append((i, j))
+
+    font = pygame.font.SysFont('None', 30)
+    if grid[y][x] == '0':
+        pygame.draw.rect(screen, (160, 160, 160), pygame.Rect(x * 31, y * 31, 30, 30))
+
+        for position in check:
+            checked.append(position)
+            safe_check_around(screen, grid, position, checked)
+    elif grid[y][x] != 'X':
+        number = font.render(grid[y][x], False, (0, 0, 255))
+        screen.blit(number, (x * 31, y * 31))
+
+
+while not done:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            done = True
+
+        if not dead:
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                y = event.pos[1] // 31
+                x = event.pos[0] // 31
+                if grid[y][x] == 'X':
+                    for i in range(len(grid)):
+                        for j in range(len(grid)):
+                            if grid[i][j] == 'X':
+                                pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(j * 31, i * 31, 30, 30))
+                    dead = True
+                else:
+                    safe_check_around(screen, grid, (x, y))
+
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 3:
+                y = event.pos[1] // 31
+                x = event.pos[0] // 31
+                if flag_map[y][x] == 0:
+                    pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(x * 31, y * 31, 30, 30))
+                    flag_map[y][x] = 1
+                else:
+                    pygame.draw.rect(screen, (255, 255, 255), pygame.Rect(x * 31, y * 31, 30, 30))
+                    flag_map[y][x] = 0
+
+    pygame.display.flip()
